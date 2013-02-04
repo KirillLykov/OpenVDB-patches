@@ -1,0 +1,113 @@
+diff -Naur openvdb_orig/Makefile openvdb_patch/Makefile
+--- openvdb_orig/Makefile	2012-12-20 19:33:48.000000000 +0100
++++ openvdb_patch/Makefile	2013-01-10 14:10:35.000000000 +0100
+@@ -66,40 +66,42 @@
+ #
+ 
+ # The directory into which to install libraries, executables and header files
+-INSTALL_DIR := /tmp/OpenVDB
++INSTALL_DIR := /Users/kirill/bin/openvdb
+ 
+ # The parent directory of the boost/ header directory
+-BOOST_INCL_DIR := $(HT)/include
++BOOST_INCL_DIR := /opt/local/include/boost
++BOOST_LIB_DIR := /opt/local/lib
++BOOST_LIB := -lboost_system-mt
+ 
+ # The parent directory of the OpenEXR/ header directory (which contains half.h)
+-HALF_INCL_DIR := $(HT)/include
++HALF_INCL_DIR := /opt/local/include/OpenEXR
+ # The directory containing libHalf
+-HALF_LIB_DIR := $(HDSO)
++HALF_LIB_DIR := /opt/local/lib
+ HALF_LIB := -lHalf
+ 
+ # The parent directory of the tbb/ header directory
+-TBB_INCL_DIR := $(HT)/include
++TBB_INCL_DIR := /opt/local/include/tbb
+ # The directory containing libtbb
+-TBB_LIB_DIR := $(HDSO)
++TBB_LIB_DIR := /opt/local/lib
+ TBB_LIB := -ltbb
+ 
+ # The parent directory of the cppunit/ header directory
+ # (leave blank if CppUnit is unavailable)
+-CPPUNIT_INCL_DIR := /rel/map/generic-2011.15/sys_include
++CPPUNIT_INCL_DIR := /opt/local/include/cppunit
+ # The directory containing libcppunit
+-CPPUNIT_LIB_DIR := /rel/depot/third_party_build/cppunit/1.10.2-7/opt-ws5-x86_64-gccWS5_64/lib/
++CPPUNIT_LIB_DIR := /opt/local/lib
+ CPPUNIT_LIB := -lcppunit
+ 
+ # The directory containing glfw.h
+ # (leave blank if GLFW is unavailable)
+-GLFW_INCL_DIR := /usr/local/include/GL
++GLFW_INCL_DIR := /Users/kirill/bin/glfw/include
+ # The directory containing libglfw
+-GLFW_LIB_DIR := /usr/local/lib
++GLFW_LIB_DIR := /Users/kirill/bin/glfw/lib
+ GLFW_LIB := -lglfw
+ 
+ # The Doxygen executable
+ # (leave blank if Doxygen is unavailable)
+-DOXYGEN := doxygen
++DOXYGEN := 
+ 
+ 
+ #
+@@ -130,7 +132,7 @@
+ ifeq (yes,$(strip $(debug)))
+     OPTIMIZE := -g
+ else
+-    OPTIMIZE := -O3 -DNDEBUG
++    OPTIMIZE := -O0 -g
+ endif
+ 
+ ifeq (yes,$(strip $(verbose)))
+@@ -147,11 +149,13 @@
+     -ldl -lm -lz \
+     -L $(HALF_LIB_DIR) $(HALF_LIB) \
+     -L $(TBB_LIB_DIR) $(TBB_LIB) \
++    -L $(BOOST_LIB_DIR) $(BOOST_LIB) \
+ #
+ LIBS_RPATH := \
+     -ldl -lm -lz \
+     -Wl,-rpath,$(HALF_LIB_DIR) -L $(HALF_LIB_DIR) $(HALF_LIB) \
+     -Wl,-rpath,$(TBB_LIB_DIR) -L $(TBB_LIB_DIR) $(TBB_LIB) \
++    -Wl,-rpath,$(BOOST_LIB_DIR) -L $(BOOST_LIB_DIR) $(BOOST_LIB) \
+ #
+ ifdef LINUX
+   LIBS += -lrt
+@@ -487,9 +491,9 @@
+ else
+ vdb_view: $(LIBOPENVDB) $(VIEWER_OBJ_NAMES)
+ 	@echo "Building $@ because of $(call list_deps)"
+-	$(CXX) $(CXXFLAGS) -o $@ $(VIEWER_OBJ_NAMES) -I . \
++	$(CXX) `pkg-config --cflags libglfw` $(CXXFLAGS) -o $@ $(VIEWER_OBJ_NAMES) -I . \
+ 	    -Wl,-rpath,$(GLFW_LIB_DIR) -L $(GLFW_LIB_DIR) $(GLFW_LIB) -lGL -lGLU \
+-	    $(LIBS_RPATH) $(LIBOPENVDB_RPATH) -L $(PWD) $(LIBOPENVDB)
++	    $(LIBS_RPATH) $(LIBOPENVDB_RPATH) -L $(PWD) $(LIBOPENVDB) `pkg-config --libs libglfw`
+ endif
+ 
+ $(UNITTEST_OBJ_NAMES): %.o: %.cc
+diff -Naur openvdb_orig/unittest/TestParticlesToLevelSet.cc openvdb_patch/unittest/TestParticlesToLevelSet.cc
+--- openvdb_orig/unittest/TestParticlesToLevelSet.cc	2012-12-20 19:33:48.000000000 +0100
++++ openvdb_patch/unittest/TestParticlesToLevelSet.cc	2013-01-10 13:59:59.000000000 +0100
+@@ -246,7 +246,7 @@
+         //std::cerr << "\nExpected active voxel count = " << count
+         //    << ", actual active voxle count = "
+         //    << grid.activeVoxelCount() << std::endl;
+-        CPPUNIT_ASSERT_EQUAL(count, grid.activeVoxelCount());
++        CPPUNIT_ASSERT_EQUAL(count, static_cast<long unsigned int>(grid.activeVoxelCount()));
+     }
+ }
+ 
+@@ -365,7 +365,7 @@
+         //std::cerr << "\nExpected active voxel count = " << count
+         //    << ", actual active voxle count = "
+         //    << grid.activeVoxelCount() << std::endl;
+-        CPPUNIT_ASSERT_EQUAL(count, grid.activeVoxelCount());
++        CPPUNIT_ASSERT_EQUAL(count, static_cast<long unsigned int>(grid.activeVoxelCount()));
+     }
+ }
+ 

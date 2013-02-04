@@ -1,0 +1,49 @@
+diff -Naur openvdb_orig/Makefile openvdb_patch/Makefile
+--- openvdb_orig/Makefile	2012-12-20 19:33:48.000000000 +0100
++++ openvdb_patch/Makefile	2013-01-10 13:58:58.000000000 +0100
+@@ -69,7 +69,9 @@
+ INSTALL_DIR := /tmp/OpenVDB
+ 
+ # The parent directory of the boost/ header directory
+-BOOST_INCL_DIR := $(HT)/include
++BOOST_INCL_DIR := /opt/local/include/boost
++BOOST_LIB_DIR := /opt/local/lib
++BOOST_LIB := -lboost_system-mt
+ 
+ # The parent directory of the OpenEXR/ header directory (which contains half.h)
+ HALF_INCL_DIR := $(HT)/include
+@@ -147,11 +149,13 @@
+     -ldl -lm -lz \
+     -L $(HALF_LIB_DIR) $(HALF_LIB) \
+     -L $(TBB_LIB_DIR) $(TBB_LIB) \
++    -L $(BOOST_LIB_DIR) $(BOOST_LIB) \
+ #
+ LIBS_RPATH := \
+     -ldl -lm -lz \
+     -Wl,-rpath,$(HALF_LIB_DIR) -L $(HALF_LIB_DIR) $(HALF_LIB) \
+     -Wl,-rpath,$(TBB_LIB_DIR) -L $(TBB_LIB_DIR) $(TBB_LIB) \
++    -Wl,-rpath,$(BOOST_LIB_DIR) -L $(BOOST_LIB_DIR) $(BOOST_LIB) \
+ #
+ ifdef LINUX
+   LIBS += -lrt
+diff -Naur openvdb_orig/unittest/TestParticlesToLevelSet.cc openvdb_patch/unittest/TestParticlesToLevelSet.cc
+--- openvdb_orig/unittest/TestParticlesToLevelSet.cc	2012-12-20 19:33:48.000000000 +0100
++++ openvdb_patch/unittest/TestParticlesToLevelSet.cc	2013-01-10 13:59:59.000000000 +0100
+@@ -246,7 +246,7 @@
+         //std::cerr << "\nExpected active voxel count = " << count
+         //    << ", actual active voxle count = "
+         //    << grid.activeVoxelCount() << std::endl;
+-        CPPUNIT_ASSERT_EQUAL(count, grid.activeVoxelCount());
++        CPPUNIT_ASSERT_EQUAL(count, static_cast<long unsigned int>(grid.activeVoxelCount()));
+     }
+ }
+ 
+@@ -365,7 +365,7 @@
+         //std::cerr << "\nExpected active voxel count = " << count
+         //    << ", actual active voxle count = "
+         //    << grid.activeVoxelCount() << std::endl;
+-        CPPUNIT_ASSERT_EQUAL(count, grid.activeVoxelCount());
++        CPPUNIT_ASSERT_EQUAL(count, static_cast<long unsigned int>(grid.activeVoxelCount()));
+     }
+ }
+ 
