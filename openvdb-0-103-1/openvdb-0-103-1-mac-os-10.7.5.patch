@@ -1,0 +1,198 @@
+diff -rupN not_modified/openvdb/Makefile modified/openvdb/Makefile
+--- not_modified/openvdb/Makefile	2013-01-15 00:05:08.000000000 +0100
++++ modified/openvdb/Makefile	2013-02-04 19:50:21.000000000 +0100
+@@ -66,40 +66,42 @@
+ #
+ 
+ # The directory into which to install libraries, executables and header files
+-INSTALL_DIR := /tmp/OpenVDB
++INSTALL_DIR := /Users/kirill/bin/openvdb
+ 
+ # The parent directory of the boost/ header directory
+-BOOST_INCL_DIR := $(HT)/include
++BOOST_INCL_DIR := /opt/local/include/boost
++BOOST_LIB_DIR := /opt/local/lib
++BOOST_LIB := -lboost_system-mt
+ 
+ # The parent directory of the OpenEXR/ header directory (which contains half.h)
+-HALF_INCL_DIR := $(HT)/include
++HALF_INCL_DIR := /opt/local/include/OpenEXR
+ # The directory containing libHalf
+-HALF_LIB_DIR := $(HDSO)
++HALF_LIB_DIR := /opt/local/lib
+ HALF_LIB := -lHalf
+ 
+ # The parent directory of the tbb/ header directory
+-TBB_INCL_DIR := $(HT)/include
++TBB_INCL_DIR := /opt/local/include/tbb
+ # The directory containing libtbb
+-TBB_LIB_DIR := $(HDSO)
++TBB_LIB_DIR := /opt/local/lib
+ TBB_LIB := -ltbb
+ 
+ # The parent directory of the cppunit/ header directory
+ # (leave blank if CppUnit is unavailable)
+-CPPUNIT_INCL_DIR := /rel/map/generic-2011.15/sys_include
++CPPUNIT_INCL_DIR := /opt/local/include/cppunit
+ # The directory containing libcppunit
+-CPPUNIT_LIB_DIR := /rel/depot/third_party_build/cppunit/1.10.2-7/opt-ws5-x86_64-gccWS5_64/lib/
++CPPUNIT_LIB_DIR := /opt/local/lib
+ CPPUNIT_LIB := -lcppunit
+ 
+ # The directory containing glfw.h
+ # (leave blank if GLFW is unavailable)
+-GLFW_INCL_DIR := /usr/local/include/GL
++GLFW_INCL_DIR := /Users/kirill/bin/glfw/include
+ # The directory containing libglfw
+-GLFW_LIB_DIR := /usr/local/lib
++GLFW_LIB_DIR := /Users/kirill/bin/glfw/lib
+ GLFW_LIB := -lglfw
+ 
+ # The Doxygen executable
+ # (leave blank if Doxygen is unavailable)
+-DOXYGEN := doxygen
++DOXYGEN := 
+ 
+ 
+ #
+@@ -130,7 +132,7 @@ endif
+ ifeq (yes,$(strip $(debug)))
+     OPTIMIZE := -g
+ else
+-    OPTIMIZE := -O3 -DNDEBUG
++    OPTIMIZE := -O3
+ endif
+ 
+ ifeq (yes,$(strip $(verbose)))
+@@ -147,11 +149,13 @@ LIBS := \
+     -ldl -lm -lz \
+     -L $(HALF_LIB_DIR) $(HALF_LIB) \
+     -L $(TBB_LIB_DIR) $(TBB_LIB) \
++    -L $(BOOST_LIB_DIR) $(BOOST_LIB) \
+ #
+ LIBS_RPATH := \
+     -ldl -lm -lz \
+     -Wl,-rpath,$(HALF_LIB_DIR) -L $(HALF_LIB_DIR) $(HALF_LIB) \
+     -Wl,-rpath,$(TBB_LIB_DIR) -L $(TBB_LIB_DIR) $(TBB_LIB) \
++    -Wl,-rpath,$(BOOST_LIB_DIR) -L $(BOOST_LIB_DIR) $(BOOST_LIB) \
+ #
+ ifdef LINUX
+   LIBS += -lrt
+@@ -487,7 +491,7 @@ vdb_view:
+ else
+ vdb_view: $(LIBOPENVDB) $(VIEWER_OBJ_NAMES)
+ 	@echo "Building $@ because of $(call list_deps)"
+-	$(CXX) $(CXXFLAGS) -o $@ $(VIEWER_OBJ_NAMES) -I . \
++	$(CXX) -framework OpenGL -framework cocoa -framework IOKit $(CXXFLAGS) -o $@ $(VIEWER_OBJ_NAMES) -I . \
+ 	    -Wl,-rpath,$(GLFW_LIB_DIR) -L $(GLFW_LIB_DIR) $(GLFW_LIB) -lGL -lGLU \
+ 	    $(LIBS_RPATH) $(LIBOPENVDB_RPATH) -L $(PWD) $(LIBOPENVDB)
+ endif
+diff -rupN not_modified/openvdb/cmd/openvdb_view/RenderModules.cc modified/openvdb/cmd/openvdb_view/RenderModules.cc
+--- not_modified/openvdb/cmd/openvdb_view/RenderModules.cc	2013-01-15 00:05:08.000000000 +0100
++++ modified/openvdb/cmd/openvdb_view/RenderModules.cc	2013-02-04 20:40:04.000000000 +0100
+@@ -74,11 +74,18 @@ BufferObject::render() const
+     }
+ 
+     // normal buffer
++    /*
+     if (usesNormalBuffer) {
+         glEnableVertexAttribArray(2);
+         glBindBuffer(GL_ARRAY_BUFFER, mNormalBuffer);
+         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+     }
++    */
++    if (usesNormalBuffer) {
++        glEnableClientState(GL_NORMAL_ARRAY);
++        glBindBuffer(GL_ARRAY_BUFFER, mNormalBuffer);
++        glNormalPointer(GL_FLOAT, 0, 0);
++    }
+ 
+     // index buffer
+     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIndexBuffer);
+@@ -412,20 +419,19 @@ TreeTopologyModule::TreeTopologyModule(c
+     mIsInitialized(false)
+ {
+     mShader.setVertShader(
+-        "#version 130\n"
+-        "in vec3 vertex;\n"
+-        "in vec3 color;\n"
+-        "out vec4 f_color;\n"
++        "#version 120\n"
++        "attribute vec3 vertex;\n"
++        "attribute vec3 color;\n"
++        "varying vec4 f_color;\n"
+         "void main() {\n"
+         "f_color = vec4(color, 1.0);\n"
+         "gl_Position =  gl_ModelViewProjectionMatrix * vec4(vertex, 1.0);}\n");
+ 
+     mShader.setFragShader(
+-        "#version 130\n"
+-        "in vec4 f_color;\n"
+-        "out vec4 out_Color;\n"
++        "#version 120\n"
++        "varying vec4 f_color;\n"
+         "void main() {\n"
+-            "out_Color = f_color;}\n");
++            "gl_FragColor = f_color;}\n");
+ 
+     mShader.build();
+ }
+@@ -474,11 +480,11 @@ MeshModule::MeshModule(const std::vector
+     mIsInitialized(false)
+ {
+     mShader.setVertShader(
+-        "#version 130\n"
+-        "in vec3 vertex;\n"
+-        "in vec3 v_normal;\n"
+-        "out vec3 normal;\n"
+-        "out vec3 light_dir;\n"
++        "#version 120\n"
++        "attribute vec3 vertex;\n"
++        "attribute vec3 v_normal;\n"
++        "varying vec3 normal;\n"
++        "varying vec3 light_dir;\n"
+         "void main() {\n"
+             "normal = normalize(gl_NormalMatrix * gl_Normal);\n"
+             "vec3 mv_vert = vec3(gl_ModelViewMatrix * vec4(vertex, 1.0));"
+@@ -487,16 +493,15 @@ MeshModule::MeshModule(const std::vector
+         "}\n");
+ 
+     mShader.setFragShader(
+-        "#version 130\n"
+-        "in vec3 normal;\n"
+-        "in vec3 light_dir;\n"
+-        "out vec4 out_Color;\n"
++        "#version 120\n"
++        "varying vec3 normal;\n"
++        "varying vec3 light_dir;\n"
+         "void main() {\n"
+             "const vec4 diffuseColor = vec4(0.6, 0.6, 0.6, 1.0);\n"
+             "vec3 normalized_normal = normalize(normal);\n"
+             "vec3 normalized_light_dir = normalize(light_dir);\n"
+             "float diffuseTerm = clamp(dot(normalized_normal, normalized_light_dir), 0.2, 1.0);\n"
+-            "out_Color = vec4(0.2, 0.2, 0.2, 1.0) + diffuseTerm * diffuseColor;\n"
++            "gl_FragColor = vec4(0.2, 0.2, 0.2, 1.0) + diffuseTerm * diffuseColor;\n"
+         "}\n");
+ 
+     mShader.build();
+diff -rupN not_modified/openvdb/unittest/TestParticlesToLevelSet.cc modified/openvdb/unittest/TestParticlesToLevelSet.cc
+--- not_modified/openvdb/unittest/TestParticlesToLevelSet.cc	2013-01-15 00:05:08.000000000 +0100
++++ modified/openvdb/unittest/TestParticlesToLevelSet.cc	2013-02-04 20:23:09.000000000 +0100
+@@ -218,7 +218,7 @@ TestParticlesToLevelSet::testRasterizeSp
+     {// full but slow test of all voxels
+         openvdb::CoordBBox bbox = pa.getBBox(grid);
+         bbox.expand(halfWidth+1);
+-        size_t count=0;
++        openvdb::Index64 count=0;
+         const openvdb::Coord &min=bbox.min(), &max=bbox.max();
+         for (openvdb::Coord ijk=min; ijk[0]<max[0]; ++ijk[0]) {
+             for (ijk[1]=min[1]; ijk[1]<max[1]; ++ijk[1]) {
+@@ -325,7 +325,7 @@ TestParticlesToLevelSet::testRasterizeSp
+     {// full but slow test of all voxels
+         openvdb::CoordBBox bbox = pa.getBBox(grid);
+         bbox.expand(halfWidth+1);
+-        size_t count=0;
++        openvdb::Index64 count=0;
+         const openvdb::Coord &min=bbox.min(), &max=bbox.max();
+         for (openvdb::Coord ijk=min; ijk[0]<max[0]; ++ijk[0]) {
+             for (ijk[1]=min[1]; ijk[1]<max[1]; ++ijk[1]) {
